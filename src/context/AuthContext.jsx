@@ -20,17 +20,40 @@ export const AuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       const accessToken = localStorage.getItem('accessToken');
       const savedUser = localStorage.getItem('user');
+      const sessionTimestamp = localStorage.getItem('sessionTimestamp');
       
       if (accessToken && savedUser) {
         try {
-          // Verificar si el token sigue siendo válido
-          await apiService.verifyToken();
-          setUser(JSON.parse(savedUser));
+          // Verificar si la sesión no ha expirado (24 horas)
+          const now = Date.now();
+          const sessionAge = now - parseInt(sessionTimestamp || '0');
+          const maxSessionAge = 24 * 60 * 60 * 1000; // 24 horas en milisegundos
+          
+          if (sessionAge > maxSessionAge) {
+            throw new Error('Sesión expirada por tiempo');
+          }
+          
+          // Intentar verificar el token con el servidor
+          try {
+            await apiService.verifyToken();
+            // Si la verificación es exitosa, restaurar usuario
+            setUser(JSON.parse(savedUser));
+          } catch (verifyError) {
+            console.warn('No se pudo verificar el token con el servidor, pero manteniendo sesión local:', verifyError.message);
+            // Si el servidor no está disponible pero la sesión es reciente, mantener la sesión
+            if (sessionAge < 60 * 60 * 1000) { // Menos de 1 hora
+              setUser(JSON.parse(savedUser));
+            } else {
+              throw new Error('No se puede verificar sesión antigua sin conexión al servidor');
+            }
+          }
         } catch (error) {
-          // Token inválido, limpiar datos
+          console.log('Limpiando sesión:', error.message);
+          // Token inválido o sesión expirada, limpiar datos
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
+          localStorage.removeItem('sessionTimestamp');
           setUser(null);
         }
       }
@@ -48,27 +71,17 @@ export const AuthProvider = ({ children }) => {
       console.log('Respuesta del servidor:', response);
       
       // Verificar si la respuesta tiene la estructura esperada
-      if (response && (response.status === 200 || response.success || response.data)) {
-        // Manejar diferentes formatos de respuesta
-        let userData, accessToken, refreshToken;
+      // Manejar tanto {success: true, data: {...}} como {status: 200, message: '...', data: {...}}
+      const isSuccessful = (response.success === true) || (response.status === 200 && response.message === 'Login successful');
+      
+      if (response && isSuccessful && response.data) {
+        const { user: userData, accessToken, refreshToken } = response.data;
         
-        if (response.data && response.data.user) {
-          // Formato: { status: 200, message: 'Login successful', data: { user, accessToken, refreshToken } }
-          ({ user: userData, accessToken, refreshToken } = response.data);
-        } else if (response.success) {
-          // Formato: { success: true, data: { user, accessToken, refreshToken } }
-          ({ user: userData, accessToken, refreshToken } = response.data);
-        } else {
-          // Formato directo: { user, accessToken, refreshToken }
-          userData = response.user;
-          accessToken = response.accessToken;
-          refreshToken = response.refreshToken;
-        }
-        
-        // Guardar tokens y datos del usuario
+        // Guardar tokens, datos del usuario y timestamp de la sesión
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
         localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('sessionTimestamp', Date.now().toString());
         
         setUser(userData);
         console.log('Login exitoso, usuario:', userData);
@@ -98,6 +111,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('sessionTimestamp');
       setIsLoading(false);
     }
   };

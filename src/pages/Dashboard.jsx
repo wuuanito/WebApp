@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/ui/button';
@@ -30,6 +30,25 @@ const Dashboard = () => {
   const { theme, toggleTheme, isDark } = useTheme();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [showDepartments, setShowDepartments] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Cargar la sección activa desde localStorage al inicializar
+  useEffect(() => {
+    const savedSection = localStorage.getItem('dashboardActiveSection');
+    if (savedSection) {
+      // Verificar que el usuario tenga acceso a la sección guardada
+      if (savedSection === 'dashboard' || 
+          savedSection === 'monitorizacion' && hasAccessToMonitoring() ||
+          (savedSection === 'informatica' || savedSection === 'administracion') && hasAccessToDepartment(savedSection)) {
+        setActiveSection(savedSection);
+      }
+    }
+  }, [user]); // Dependencia en user para verificar permisos
+
+  // Guardar la sección activa en localStorage cada vez que cambie
+  useEffect(() => {
+    localStorage.setItem('dashboardActiveSection', activeSection);
+  }, [activeSection]);
 
   // Control de acceso por departamento
   const hasAccessToDepartment = (department) => {
@@ -85,7 +104,12 @@ const Dashboard = () => {
       <header className="border-b bg-card transition-colors duration-300">
         <div className="flex h-16 items-center px-4 lg:px-6">
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" className="lg:hidden">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="lg:hidden"
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+            >
               <Menu className="h-6 w-6" />
             </Button>
             <div className="flex items-center gap-2">
@@ -97,7 +121,7 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Navigation */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6 ml-8">
             <Button 
               variant={activeSection === 'dashboard' ? 'default' : 'ghost'}
@@ -194,6 +218,65 @@ const Dashboard = () => {
           </div>
         </div>
       </header>
+
+      {/* Mobile Navigation */}
+      {showMobileMenu && (
+        <div className="md:hidden bg-card border-b">
+          <nav className="px-4 py-2 space-y-2">
+            <Button 
+              variant={activeSection === 'dashboard' ? 'default' : 'ghost'}
+              onClick={() => {
+                setActiveSection('dashboard');
+                setShowMobileMenu(false);
+              }}
+              className="w-full justify-start text-sm"
+            >
+              Inicio
+            </Button>
+            
+            {/* Departamentos en móvil */}
+            {availableDepartments.length > 0 && (
+              <div className="space-y-1">
+                <div className="px-3 py-2 text-sm font-medium text-muted-foreground">
+                  Departamentos
+                </div>
+                {availableDepartments.map((dept) => {
+                  const Icon = dept.icon;
+                  return (
+                    <Button
+                      key={dept.id}
+                      variant={activeSection === dept.id ? 'default' : 'ghost'}
+                      onClick={() => {
+                        setActiveSection(dept.id);
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full justify-start text-sm pl-6"
+                    >
+                      <Icon className="h-4 w-4 mr-2" />
+                      {dept.name}
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+            
+            {/* Monitorización en móvil */}
+            {hasAccessToMonitoring() && (
+              <Button 
+                variant={activeSection === 'monitorizacion' ? 'default' : 'ghost'}
+                onClick={() => {
+                  setActiveSection('monitorizacion');
+                  setShowMobileMenu(false);
+                }}
+                className="w-full justify-start text-sm"
+              >
+                <Activity className="h-4 w-4 mr-2" />
+                Captura Maquinas
+              </Button>
+            )}
+          </nav>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="p-4 lg:p-6">
