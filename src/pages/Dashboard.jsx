@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import InformaticaDepartment from '../components/departments/Informatica/InformaticaDepartment';
+import AdministracionDepartment from '../components/departments/Administracion/AdministracionDepartment';
+import MonitorizacionSystem from '../components/monitoring/MonitorizacionSystem';
 import { 
   BarChart3, 
   Users, 
@@ -14,12 +17,36 @@ import {
   Search,
   Settings,
   Sun,
-  Moon
+  Moon,
+  ChevronDown,
+  Building2,
+  Monitor,
+  FileText,
+  Activity
 } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [showDepartments, setShowDepartments] = useState(false);
+
+  // Control de acceso por departamento
+  const hasAccessToDepartment = (department) => {
+    if (user?.role === 'administrador') return true;
+    return user?.department?.toLowerCase() === department.toLowerCase();
+  };
+
+  // Control de acceso para monitorización (solo producción y administrador)
+  const hasAccessToMonitoring = () => {
+    if (user?.role === 'administrador') return true;
+    return user?.department?.toLowerCase() === 'produccion';
+  };
+
+  const availableDepartments = [
+    { id: 'informatica', name: 'Informática', icon: Monitor },
+    { id: 'administracion', name: 'Administración', icon: FileText }
+  ].filter(dept => hasAccessToDepartment(dept.id));
 
   const stats = [
     {
@@ -61,22 +88,79 @@ const Dashboard = () => {
             <Button variant="ghost" size="icon" className="lg:hidden">
               <Menu className="h-6 w-6" />
             </Button>
-            <h1 className="text-xl font-semibold">Dashboard</h1>
-          </div>
-          
-          <div className="ml-auto flex items-center space-x-4">
-            <div className="hidden md:flex items-center space-x-2 bg-muted rounded-lg px-3 py-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <input 
-                type="text" 
-                placeholder="Buscar..." 
-                className="bg-transparent border-0 outline-none text-sm w-40 lg:w-60"
+            <div className="flex items-center gap-2">
+              <img 
+                src="https://www.riojanaturepharma.com/assets/favicon-32x32.png" 
+                alt="Logo" 
+                className="w-8 h-8"
               />
             </div>
-            
-            <Button variant="ghost" size="icon">
-              <Bell className="h-5 w-5" />
+          </div>
+          
+          {/* Navigation */}
+          <nav className="hidden md:flex items-center space-x-6 ml-8">
+            <Button 
+              variant={activeSection === 'dashboard' ? 'default' : 'ghost'}
+              onClick={() => setActiveSection('dashboard')}
+              className="text-sm"
+            >
+              Inicio
             </Button>
+            
+            {/* Departamentos Dropdown */}
+            {availableDepartments.length > 0 && (
+              <div className="relative">
+                <Button 
+                  variant="ghost"
+                  onClick={() => setShowDepartments(!showDepartments)}
+                  className="flex items-center space-x-1 text-sm"
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span>Departamentos</span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${showDepartments ? 'rotate-180' : ''}`} />
+                </Button>
+                
+                {showDepartments && (
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-card border rounded-md shadow-lg z-50">
+                    {availableDepartments.map((dept) => {
+                      const Icon = dept.icon;
+                      return (
+                        <Button
+                          key={dept.id}
+                          variant="ghost"
+                          onClick={() => {
+                            setActiveSection(dept.id);
+                            setShowDepartments(false);
+                          }}
+                          className="w-full justify-start px-3 py-2 text-sm hover:bg-muted"
+                        >
+                          <Icon className="h-4 w-4 mr-2" />
+                          {dept.name}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Monitorización */}
+            {hasAccessToMonitoring() && (
+              <Button 
+                variant={activeSection === 'monitorizacion' ? 'default' : 'ghost'}
+                onClick={() => setActiveSection('monitorizacion')}
+                className="flex items-center space-x-1 text-sm"
+              >
+                <Activity className="h-4 w-4" />
+                <span>Captura Maquinas</span>
+              </Button>
+            )}
+          </nav>
+          
+          <div className="ml-auto flex items-center space-x-4">
+            
+            
+         
             
             <Button variant="ghost" size="icon">
               <Settings className="h-5 w-5" />
@@ -113,6 +197,8 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="p-4 lg:p-6">
+        {activeSection === 'dashboard' && (
+          <div>
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold tracking-tight">¡Bienvenido de vuelta, {user?.name}!</h2>
@@ -202,6 +288,14 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+          </div>
+        )}
+        
+        {activeSection === 'informatica' && <InformaticaDepartment />}
+        
+        {activeSection === 'administracion' && <AdministracionDepartment />}
+         
+         {activeSection === 'monitorizacion' && <MonitorizacionSystem />}
       </main>
     </div>
   );

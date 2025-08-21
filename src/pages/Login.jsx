@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Lock, Mail, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Sun, Moon, CheckCircle } from 'lucide-react';
 
 const Login = () => {
   const [emailOrUsername, setEmailOrUsername] = useState('');
@@ -13,6 +13,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
   const { login, isAuthenticated } = useAuth();
   const { toggleTheme, isDark } = useTheme();
 
@@ -25,6 +26,7 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    setLoginSuccess(false);
 
     // Determinar si es email o username
     const credentials = {
@@ -42,9 +44,14 @@ const Login = () => {
     
     if (!result.success) {
       setError(result.error);
+      setIsLoading(false);
+    } else {
+      setLoginSuccess(true);
+      // Mantener el estado de éxito por un momento antes de la redirección
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 1500);
     }
-    
-    setIsLoading(false);
   };
 
   return (
@@ -60,13 +67,19 @@ const Login = () => {
       </Button>
       
       <div className="w-full max-w-md">
-        <Card className="shadow-2xl border-0">
+        <Card className="shadow-2xl border-0 backdrop-blur-sm bg-white/95 dark:bg-gray-900/95">
           <CardHeader className="space-y-1 text-center">
-            <div className="mx-auto w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
-              <Lock className="w-6 h-6 text-primary-foreground" />
+            <div className="mx-auto w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg border-4 border-green-500">
+              <img 
+                src="https://www.riojanaturepharma.com/assets/favicon-32x32.png" 
+                alt="Rioja Nature Pharma Logo" 
+                className="w-12 h-12 rounded-full"
+              />
             </div>
-            <CardTitle className="text-2xl font-bold">Iniciar Sesión</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              Rioja Nature Pharma
+            </CardTitle>
+            <CardDescription className="text-base">
               Ingresa tu usuario/email y contraseña para acceder
             </CardDescription>
           </CardHeader>
@@ -123,10 +136,26 @@ const Login = () => {
 
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-all duration-300" 
                 disabled={isLoading}
               >
-                {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                {isLoading ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    {loginSuccess ? (
+                      <>
+                        <CheckCircle className="w-5 h-5 text-green-400 animate-pulse" />
+                        <span>¡Inicio exitoso!</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Iniciando sesión...</span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  'Iniciar Sesión'
+                )}
               </Button>
             </form>
             
