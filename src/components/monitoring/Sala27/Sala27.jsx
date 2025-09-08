@@ -11,8 +11,8 @@ import Jarabes from './machines/Jarabes';
 import VialesPitillo from './machines/VialesPitillo';
 import Viales from './machines/Viales';
 import Doypack from './machines/Doypack';
-import VialesPitilloDetails from './machines/details/VialesPitillo/VialesPitilloDetails';
-import MonolabDetails from './machines/details/Monolab/MonolabDetails';
+import CremerDetails from './machines/details/Cremer/CremerDetails';
+import TecnomacoDetails from './machines/details/Tecnomaco/TecnomacoDetails';
 
 const Sala27 = () => {
   const [modalState, setModalState] = useState({
@@ -55,20 +55,18 @@ const Sala27 = () => {
       </div>
       
       {/* Modales de detalles */}
-      {modalState.machineType === 'vialesPitillo' && (
-        <VialesPitilloDetails
+  
+      
+      {modalState.machineType === 'cremer' && (
+        <CremerDetails
           isOpen={modalState.isOpen}
           onClose={closeModal}
-          ordenActiva={modalState.machineData?.ordenActiva}
-          ordenLimpieza={modalState.machineData?.ordenLimpieza}
-          tiempoActivo={modalState.machineData?.tiempoActivo}
-          tiempoLimpieza={modalState.machineData?.tiempoLimpieza}
-          gpioStates={modalState.machineData?.gpioStates}
+          machineData={modalState.machineData}
         />
       )}
       
-      {modalState.machineType === 'monolab' && (
-        <MonolabDetails
+      {modalState.machineType === 'tecnomaco' && (
+        <TecnomacoDetails
           isOpen={modalState.isOpen}
           onClose={closeModal}
           machineData={modalState.machineData}

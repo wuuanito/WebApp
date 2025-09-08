@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import useWebSocket from '../../../../hooks/useWebSocket';
 import Semaforo from './Semaforo';
 
-const Cremer = () => {
+const Cremer = ({ onOpenModal }) => {
   const [gpioStates, setGpioStates] = useState({});
   const [ordenActiva, setOrdenActiva] = useState(null);
   const [ordenLimpieza, setOrdenLimpieza] = useState(null);
@@ -159,10 +159,23 @@ const Cremer = () => {
   }, [ordenLimpieza]);
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
+    <Card 
+      className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col cursor-pointer"
+      onClick={() => onOpenModal && onOpenModal({
+        id: 'CREMER-001',
+        nombre: 'Cremer',
+        estado: gpioStates[18] === 1 ? 'Activo' : 'Inactivo',
+        ordenActiva,
+        ordenLimpieza,
+        tiempoActivo,
+        tiempoLimpieza,
+        gpioStates,
+        connectionStatus
+      })}
+    >
       <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
         <CardTitle className="text-base sm:text-lg font-semibold">Cremer</CardTitle>
-        {(ordenActiva || ordenLimpieza) && (
+        {(ordenActiva || ordenLimpieza) ? (
           <CardDescription className="text-xs sm:text-sm space-y-2 sm:space-y-3">
             {/* Orden de Producción */}
              {ordenActiva && (
@@ -218,6 +231,10 @@ const Cremer = () => {
                 </div>
               </div>
             )}
+          </CardDescription>
+        ) : (
+          <CardDescription className="text-xs sm:text-sm text-gray-500 italic">
+            No hay fabricación en curso
           </CardDescription>
         )}
       </CardHeader>

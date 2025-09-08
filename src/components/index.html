@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Monitor GPIO en tiempo real</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#f6f7fb; margin:0; padding:24px; color:#222; }
+    h1 { margin:0 0 12px; font-size:20px; }
+    .status { font-size:14px; margin-bottom:12px; }
+    .ok { color:#2e7d32; } .bad { color:#c62828; } .warn { color:#ef6c00; }
+    table { border-collapse: collapse; width: 360px; background:white; border-radius:12px; overflow:hidden; box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #eee; text-align:left; }
+    th { background:#fafafa; font-weight:600; }
+    tr:last-child td { border-bottom: none; }
+    .led { width:16px; height:16px; border-radius:50%; display:inline-block; vertical-align:middle; margin-right:8px; }
+    .on { background:#4caf50; }
+    .off { background:#f44336; }
+    code { background:#eee; padding:2px 6px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <h1>Monitor de GPIO</h1>
+  <div class="status" id="status">Estado: <span class="bad">desconectado</span></div>
+
+  <table>
+    <thead>
+      <tr><th>Pin (BCM)</th><th>Estado</th></tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <script>
+    // Ajusta host/IP si accedes desde otra máquina
+    const WS_URL = "ws://192.168.20.30:8765";
+
+    // Lista fija de pines para mostrarlos aunque no haya cambios
+    const PINS = [4, 27, 21, 22, 23];
+
+    const tbody = document.getElementById("tbody");
+    const statusEl = document.getElementById("status");
+
+    // Estado local (inicialmente desconocido -> null)
+    const pinStates = Object.fromEntries(PINS.map(p => [p, null]));
+
+    // Crea tabla fija
+    const rows = {};
+    function buildTable() {
+      tbody.innerHTML = "";
+      PINS.forEach(pin => {
+        const tr = document.createElement("tr");
+
+        const tdPin = document.createElement("td");
+        tdPin.textContent = pin;
+
+        const tdState = document.createElement("td");
+        const led = document.createElement("span");
+        led.className = "led off";
+        const label = document.createElement("span");
+        label.textContent = "—"; // sin datos aún
+
+        tdState.appendChild(led);
+        tdState.appendChild(label);
+
+        tr.appendChild(tdPin);
+        tr.appendChild(tdState);
+        tbody.appendChild(tr);
+
+        rows[pin] = { tr, led, label };
+      });
+    }
+
+    function render(pin, value) {
+      if (!(pin in rows)) return;
+      pinStates[pin] = value;
+      rows[pin].led.className = "led " + (value ? "on" : "off");
+      rows[pin].label.textContent = value ? "HIGH" : "LOW";
+    }
+
+    function setStatus(text, cls) {
+      statusEl.innerHTML = `Estado: <span class="${cls}">${text}</span>`;
+    }
+
+    let ws;
+    let retry = 0;
+
+    function connect() {
+      ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        setStatus("conectado", "ok");
+        retry = 0;
+      };
+
+      ws.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          if (Array.isArray(data)) {
+            // Estados iniciales [{pin, value}, ...]
+            data.forEach(d => render(d.pin, Number(d.value)));
+          } else if (data && typeof data === "object" && "pin" in data) {
+            render(Number(data.pin), Number(data.value));
+          }
+        } catch (e) {
+          console.error("Mensaje no-JSON:", ev.data);
+        }
+      };
+
+      ws.onclose = () => {
+        setStatus("reconectando…", "warn");
+        const delay = Math.min(10000, 1000 * Math.pow(2, retry++)); // backoff
+        setTimeout(connect, delay);
+      };
+
+      ws.onerror = () => {
+        // El onclose gestionará la reconexión
+      };
+    }
+
+    buildTable();
+    connect();
+  </script>
+</body>
+</html>
