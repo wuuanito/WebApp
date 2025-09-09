@@ -71,6 +71,182 @@ class ApiService {
       body: JSON.stringify({ refreshToken }),
     });
   }
+
+  // Métodos para gestión de órdenes
+  
+  /**
+   * Iniciar una orden de producción
+   * @param {number} orderId - ID de la orden a iniciar
+   * @returns {Promise} Resultado de la operación
+   */
+  async startOrder(orderId) {
+    const url = `http://localhost:8020/order/${orderId}/start`;
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || `Error ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log('Orden iniciada:', result);
+      return result;
+    } catch (error) {
+      console.error('Error al iniciar orden:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Iniciar una orden con hora específica (para testing)
+   * @param {number} orderId - ID de la orden a iniciar
+   * @param {string} horaInicio - Hora de inicio en formato ISO (ej: "2024-01-15T08:00:00")
+   * @returns {Promise} Resultado de la operación
+   */
+  async testStartOrder(orderId, horaInicio) {
+    const url = `http://localhost:8020/order/${orderId}/test-start`;
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          horaInicio: horaInicio
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || `Error ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log('Orden de testing iniciada:', result);
+      return result;
+    } catch (error) {
+      console.error('Error al iniciar orden de testing:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Pausar una orden de producción
+   * @param {number} codOrden - Código de la orden a pausar
+   * @param {string} tipoPausa - Tipo de pausa ("mantenimiento", "cambio_formato", "falta_material", "averia", "descanso", "otros")
+   * @param {string} descripcion - Descripción de la pausa
+   * @param {string} usuario - Usuario que realiza la pausa
+   * @param {boolean} computa - Si cuenta para cálculo OEE (default: true)
+   * @returns {Promise} Resultado de la operación
+   */
+  async pauseOrder(codOrden, tipoPausa, descripcion, usuario, computa = true) {
+    const url = 'http://localhost:8020/pause/start';
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          codOrden: codOrden,
+          tipo: tipoPausa,
+          descripcion: descripcion,
+          computa: computa,
+          createdBy: usuario
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || `Error ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log('Pausa iniciada:', result);
+      return result;
+    } catch (error) {
+      console.error('Error al pausar orden:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reanudar una orden (finalizar pausa activa)
+   * @param {number} codOrden - Código de la orden a reanudar
+   * @param {string} descripcionFinal - Descripción final de la pausa (opcional)
+   * @param {string} usuario - Usuario que reanuda la orden
+   * @returns {Promise} Resultado de la operación
+   */
+  async resumeOrder(codOrden, descripcionFinal, usuario) {
+    const url = `http://localhost:8020/pause/order/${codOrden}/finish-active`;
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          descripcionFinal: descripcionFinal,
+          updatedBy: usuario
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || `Error ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log('Orden reanudada (pausa finalizada):', result);
+      return result;
+    } catch (error) {
+      console.error('Error al reanudar orden:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Finalizar una orden de producción
+   * @param {number} orderId - ID de la orden a finalizar
+   * @param {number} botesBuenos - Cantidad de botes buenos producidos
+   * @param {number} botesMalos - Cantidad de botes malos producidos
+   * @param {boolean} acumula - Si la producción acumula
+   * @returns {Promise} Resultado de la operación
+   */
+  async finalizeOrder(orderId, botesBuenos, botesMalos, acumula) {
+    const url = `http://localhost:8020/order/${orderId}/finalize`;
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          botesBuenos: botesBuenos,
+          botesMalos: botesMalos,
+          acumula: acumula
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || `Error ${response.status}: ${response.statusText}`);
+      }
+      
+      console.log('Orden finalizada:', result);
+      return result;
+    } catch (error) {
+      console.error('Error al finalizar orden:', error);
+      throw error;
+    }
+  }
 }
 
 export default new ApiService();

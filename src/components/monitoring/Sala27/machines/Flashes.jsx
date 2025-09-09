@@ -9,7 +9,7 @@ const Flashes = () => {
   const [ordenLimpieza, setOrdenLimpieza] = useState(null);
   const [tiempoActivo, setTiempoActivo] = useState('00:00:00');
   const [tiempoLimpieza, setTiempoLimpieza] = useState('00:00:00');
-  const { data, connectionStatus } = useWebSocket('ws://192.168.20.51:8765');
+  const { data, connectionStatus } = useWebSocket('ws://192.168.20.30:8765');
 
   useEffect(() => {
     if (data) {
